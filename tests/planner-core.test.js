@@ -177,7 +177,7 @@ test("生成的方案自身通过全部约束校验", () => {
   assert.equal(r.ok, true, JSON.stringify(r.conflicts, null, 2));
 });
 
-test("容量不足：生成失败并报无法安置的箱号", () => {
+test("容量不足：生成失败并报真实约束（堆叠上限）与箱号", () => {
   const hold = makeHold();
   hold.slots = [hold.slots[0]];
   hold.slots[0].maxStack = 1;
@@ -185,8 +185,9 @@ test("容量不足：生成失败并报无法安置的箱号", () => {
   const gen = Core.generatePlan(hold, boxes);
   assert.equal(gen.ok, false);
   assert.equal(gen.placements, null);
-  assert.equal(gen.conflicts[0].constraint, "unplaced");
+  assert.equal(gen.conflicts[0].constraint, "stack-limit");
   assert.equal(gen.conflicts[0].boxCode, "BX-B");
+  assert.ok(!gen.conflicts.some(c => c.constraint === "unplaced"), "有真实约束时不应只报无法安置");
 });
 
 /* ---------- 事务式提交：失败时原数据不变 ---------- */

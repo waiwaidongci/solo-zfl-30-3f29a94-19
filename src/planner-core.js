@@ -272,11 +272,36 @@
         return {
           ok: false,
           placements: null,
-          conflicts: [{ boxCode: box.code, constraint: "unplaced", detail: "所有舱位均无法满足约束，箱无法安置" }]
+          conflicts: diagnosePlacement(hold, boxes, placements, box, slots)
         };
       }
     }
     return { ok: true, placements: placements, conflicts: [] };
+  }
+
+  /**
+   * 箱无法安置时，重放每个舱位的尝试并收集真实约束冲突，
+   * 按（箱号,约束）去重、保留确定性顺序的首个；保证不只报笼统的“无法安置”。
+   */
+  function diagnosePlacement(hold, boxes, placements, box, slots) {
+    var found = [];
+    var seen = {};
+    slots.forEach(function (slot) {
+      var level = placementsInSlot(placements, slot.id).length;
+      box.orientations.slice().sort().forEach(function (orientation) {
+        var candidate = placements.concat([{
+          boxCode: box.code, slotId: slot.id, level: level, orientation: orientation
+        }]);
+        validatePlan(hold, boxes, candidate, { partial: true }).conflicts.forEach(function (c) {
+          var key = c.boxCode + "|" + c.constraint;
+          if (!seen[key]) { seen[key] = true; found.push(c); }
+        });
+      });
+    });
+    if (!found.length) {
+      found.push({ boxCode: box.code, constraint: "unplaced", detail: "所有舱位均无法满足约束，箱无法安置" });
+    }
+    return found;
   }
 
   /* ---------------- 事务式提交 ---------------- */

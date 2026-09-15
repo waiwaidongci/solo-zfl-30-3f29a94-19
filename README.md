@@ -15,8 +15,8 @@ planner.html          规划台页面（界面壳）
 src/planner-core.js   数据层：箱/舱模型、六类约束校验、确定性规划器、事务式提交、交接明细
 src/planner-store.js  数据层：localStorage 持久化与种子数据
 src/planner-ui.js     界面层：渲染与交互（不含任何约束逻辑）
-tests/                自动化测试（node:test，17 项）
-scripts/browser-verify.mjs  真实浏览器验证（Playwright + Chromium，26 项）
+tests/                自动化测试（node:test，22 项；入口 run-tests.js，Node 18/20/22 直接可跑）
+scripts/browser-verify.mjs  真实浏览器验证（Playwright + Chromium，31 项）
 ```
 
 ## 使用

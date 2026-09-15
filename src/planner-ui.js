@@ -61,6 +61,27 @@
     return preview ? preview.placements : (committed.plan ? committed.plan.placements : []);
   }
 
+  /**
+   * 装载图的单一数据源：有预览时用草稿（箱/舱/候选方案三者一致），
+   * 否则整体回退到已提交状态——重算失败时绝不允许 committed 的摆放
+   * 配上 draft 的重量/舱位现重等草稿值混着显示。
+   */
+  function viewModel() {
+    if (preview) {
+      return { placements: preview.placements, hold: draft.hold, boxes: draft.boxes };
+    }
+    return {
+      placements: committed.plan ? committed.plan.placements : [],
+      hold: committed.hold,
+      boxes: committed.boxes
+    };
+  }
+
+  function boxIn(boxes, code) {
+    for (var i = 0; i < boxes.length; i++) if (boxes[i].code === code) return boxes[i];
+    return null;
+  }
+
   function render() {
     renderStatus();
     renderDiagram();
@@ -86,42 +107,43 @@
   }
 
   function renderDiagram() {
-    var placements = activePlacements();
+    var view = viewModel();
+    var placements = view.placements;
     var conflictBoxes = {};
     conflicts.forEach(function (c) { conflictBoxes[c.boxCode] = true; });
     var slotHasConflict = {};
     placements.forEach(function (p) { if (conflictBoxes[p.boxCode]) slotHasConflict[p.slotId] = true; });
 
     diagramEl.innerHTML = "";
-    draft.hold.decks.forEach(function (deck) {
+    view.hold.decks.forEach(function (deck) {
       var deckEl = document.createElement("div");
       deckEl.className = "deck";
-      var slots = Core.sortedSlots(draft.hold).filter(function (s) { return s.deckId === deck.id; });
+      var slots = Core.sortedSlots(view.hold).filter(function (s) { return s.deckId === deck.id; });
       var maxCol = slots.reduce(function (m, s) { return Math.max(m, s.col); }, 1);
       deckEl.innerHTML = "<h3>" + esc(deck.name) + "（" + esc(deck.id) + "）</h3>";
       var grid = document.createElement("div");
       grid.className = "slots";
       grid.style.gridTemplateColumns = "repeat(" + maxCol + ", 1fr)";
-      slots.forEach(function (slot) { grid.appendChild(renderSlot(slot, placements, conflictBoxes, slotHasConflict)); });
+      slots.forEach(function (slot) { grid.appendChild(renderSlot(slot, view, conflictBoxes, slotHasConflict)); });
       deckEl.appendChild(grid);
       diagramEl.appendChild(deckEl);
     });
   }
 
-  function renderSlot(slot, placements, conflictBoxes, slotHasConflict) {
+  function renderSlot(slot, view, conflictBoxes, slotHasConflict) {
     var el = document.createElement("div");
     el.className = "slot" + (slotHasConflict[slot.id] ? " conflict" : "");
     el.dataset.slotId = slot.id;
-    var stack = Core.placementsInSlot(placements, slot.id);
+    var stack = Core.placementsInSlot(view.placements, slot.id);
     var totalW = stack.reduce(function (sum, p) {
-      var b = findBox(p.boxCode); return sum + (b ? b.weight : 0);
+      var b = boxIn(view.boxes, p.boxCode); return sum + (b ? b.weight : 0);
     }, 0);
     el.innerHTML = '<div class="slot-head"><span>' + esc(slot.id) + '</span><span>≤' + slot.maxStack +
       '箱 · ≤' + slot.maxWeight + 'kg · 现 ' + Math.round(totalW) + 'kg</span></div>';
     var stackEl = document.createElement("div");
     stackEl.className = "stack";
     stack.forEach(function (p) {
-      var box = findBox(p.boxCode);
+      var box = boxIn(view.boxes, p.boxCode);
       if (!box) return;
       var chip = document.createElement("div");
       chip.className = "chip" + (conflictBoxes[p.boxCode] ? " conflict" : "") +
@@ -143,16 +165,22 @@
   }
 
   function renderConflicts() {
+    // 已提交方案的约束结果始终展示；重算失败时在其下方追加真实失败约束
+    var committedLine = committed.plan
+      ? '<div class="ok-line" id="committedReport">已提交方案约束结果：满足承重链、堆叠上限、重心偏移、固定方向、禁邻、先卸后装全部约束。</div>'
+      : '<div class="muted" id="committedReport">暂无已提交方案。</div>';
     if (conflicts.length) {
-      conflictPanel.innerHTML = "<h3>冲突（已拒绝保存，原方案不变）</h3><div class='conflict-list'>" +
+      conflictPanel.innerHTML = committedLine +
+        "<h3>本次重算失败（已拒绝保存，上方已提交方案不受影响）</h3><div class='conflict-list'>" +
         conflicts.map(function (c) {
           return '<div class="conflict-item"><b>' + esc(c.boxCode) + " · " +
             esc(Core.CONSTRAINT_NAMES[c.constraint] || c.constraint) + "</b><br>" + esc(c.detail) + "</div>";
         }).join("") + "</div>";
     } else if (preview) {
-      conflictPanel.innerHTML = '<div class="ok-line">校验通过：满足承重链、堆叠上限、重心偏移、固定方向、禁邻、先卸后装全部约束。请「确认保存」。</div>';
+      conflictPanel.innerHTML = committedLine +
+        '<div class="ok-line">本次重算校验通过：满足全部约束。请「确认保存」。</div>';
     } else {
-      conflictPanel.innerHTML = '<div class="ok-line">当前已提交方案满足全部约束。</div>';
+      conflictPanel.innerHTML = committedLine;
     }
   }
 
@@ -225,8 +253,7 @@
     var box = findBox(selectedBox);
     if (!box) { selectedBox = null; render(); return; }
     var base = normalizeLevels(activePlacements().filter(function (p) { return p.boxCode !== selectedBox; }));
-    var current = (committed.plan ? committed.plan.placements : []).concat(preview ? preview.placements : [])
-      .filter(function (p) { return p.boxCode === selectedBox; })[0];
+    var current = activePlacements().filter(function (p) { return p.boxCode === selectedBox; })[0];
     var orientation = current && box.orientations.indexOf(current.orientation) !== -1
       ? current.orientation : box.orientations.slice().sort()[0];
     var level = Core.placementsInSlot(base, slotId).length;

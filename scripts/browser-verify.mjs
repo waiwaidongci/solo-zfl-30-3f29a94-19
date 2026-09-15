@@ -38,6 +38,7 @@ async function chipLayout(page) {
     slots.map(s => `${s.dataset.slotId}:${[...s.querySelectorAll(".chip")].map(c => c.dataset.boxCode).join("+")}`)
       .join("|"));
 }
+async function diagramText(page) { return (await page.textContent("#diagram")).replace(/\s+/g, " ").trim(); }
 async function handoverText(page) { return (await page.textContent("#handoverList")).replace(/\s+/g, " ").trim(); }
 async function statusText(page) { return (await page.textContent("#statusBadge")).trim(); }
 
@@ -86,19 +87,29 @@ try {
   record("桌面：移动已保存且交接明细更新",
     movedLayout.includes("D2-R1C1:BX-104") && (await handoverText(d)).includes("D2-R1C1"));
 
-  // 冲突路径：把 BX-101 重量改为 5000kg（超过所有舱位承重）→ 重算失败，原数据不变
+  // 冲突路径：把 BX-101 重量改为 5000kg（超过所有舱位承重）→ 重算失败
+  // 回归点：①已提交的装载图/约束结果/交接明细完整保留，重量与舱位现重不得显示草稿值
+  //         ②冲突说明必须是真实失败约束（舱位承重），不能只报笼统“无法安置”
   const handoverCommitted = await handoverText(d);
   const layoutCommitted = await chipLayout(d);
+  const diagramCommitted = await diagramText(d);
   await d.click('#boxList .box-item[data-code="BX-101"]');
   await d.fill('input[name="weight"]', "5000");
   await d.click('#boxForm button[type="submit"]');
   const conflictVisible = await d.locator("#conflictPanel .conflict-item").first().isVisible();
   const conflictText = (await d.textContent("#conflictPanel")).replace(/\s+/g, " ");
-  record("桌面：变更后重算失败，冲突面板指明箱号与约束",
-    conflictVisible && conflictText.includes("BX-101") && conflictText.includes("无法安置"), conflictText.slice(0, 80));
+  record("桌面：失败冲突报告真实约束（箱号+舱位承重），非笼统无法安置",
+    conflictVisible && conflictText.includes("BX-101") && conflictText.includes("舱位承重") &&
+    !/BX-101 · 无法安置/.test(conflictText), conflictText.slice(0, 90));
+  record("桌面：失败后已提交约束结果仍展示",
+    conflictText.includes("已提交方案约束结果"));
   record("桌面：冲突时状态为未保存且确认按钮禁用",
     (await statusText(d)).includes("未保存") && await d.locator("#btnCommit").isDisabled());
-  record("桌面：失败时装载图不变", (await chipLayout(d)) === layoutCommitted);
+  record("桌面：失败时装载图不变（布局）", (await chipLayout(d)) === layoutCommitted);
+  const diagramAfterFail = await diagramText(d);
+  record("桌面：失败后箱重/舱位现重仍为已提交值，不混草稿值",
+    diagramAfterFail === diagramCommitted && !diagramAfterFail.includes("5000"),
+    diagramAfterFail.includes("5000") ? "装载图出现了草稿重量 5000" : "");
   record("桌面：失败时交接明细不变", (await handoverText(d)) === handoverCommitted);
 
   // 放弃草稿恢复；再做一次合法变更走完整保存链路
@@ -161,6 +172,23 @@ try {
   await m.tap('.slot[data-slot-id="D2-R2C3"]');
   const mStatus = await statusText(m);
   record("手机：触屏可调整装载", mStatus === "预览待确认" || mStatus.includes("未保存"), mStatus);
+  await m.tap("#btnCommit");
+
+  // 手机上的失败重算回归：超限重量不得混入装载图，冲突须为真实约束
+  const mDiagramCommitted = await diagramText(m);
+  const mHandoverCommitted = await handoverText(m);
+  await m.tap('#boxList .box-item[data-code="BX-101"]');
+  await m.fill('input[name="weight"]', "5000");
+  await m.tap('#boxForm button[type="submit"]');
+  const mConflictText = (await m.textContent("#conflictPanel")).replace(/\s+/g, " ");
+  record("手机：失败冲突报告真实约束（舱位承重）",
+    mConflictText.includes("BX-101") && mConflictText.includes("舱位承重"));
+  const mDiagramAfter = await diagramText(m);
+  record("手机：失败后装载图/交接明细保持已提交值",
+    mDiagramAfter === mDiagramCommitted && !mDiagramAfter.includes("5000") &&
+    (await handoverText(m)) === mHandoverCommitted);
+  await m.tap("#btnDiscard");
+  record("手机：放弃草稿后恢复已提交", (await statusText(m)) === "已提交");
   await mobile.close();
 
   record("浏览器控制台无未捕获异常", pageErrors.length === 0, pageErrors.join("; "));
