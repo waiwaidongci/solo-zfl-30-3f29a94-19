@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>出水文物转运装载规划台</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: Arial, "PingFang SC", sans-serif; background: #e8f2f3; color: #183035; }
+    header { padding: 14px 20px; background: #fff; border-bottom: 1px solid #c9dadc; display: flex; justify-content: space-between; gap: 12px; align-items: center; flex-wrap: wrap; }
+    h1 { margin: 0; font-size: 22px; }
+    h2 { font-size: 16px; margin: 14px 0 8px; }
+    h3 { font-size: 14px; margin: 10px 0 6px; }
+    a { color: #1d6c78; font-weight: 700; }
+    button { border: 0; border-radius: 8px; padding: 10px 13px; background: #1d6c78; color: #fff; font-weight: 800; cursor: pointer; font-size: 14px; }
+    button.secondary { background: #64777b; }
+    button.danger { background: #a03d3d; }
+    button:disabled { background: #9fb4b8; cursor: not-allowed; }
+    input, select { width: 100%; border: 1px solid #c9dadc; border-radius: 6px; padding: 8px; font: inherit; background: #fff; }
+    label { display: block; margin: 8px 0 4px; color: #5c7378; font-size: 13px; }
+    .layout { display: grid; grid-template-columns: minmax(0, 1fr) 400px; gap: 14px; padding: 14px; align-items: start; }
+    .panel { background: #fff; border: 1px solid #c9dadc; border-radius: 8px; padding: 12px; margin-bottom: 14px; }
+    .muted { color: #5c7378; font-size: 13px; }
+    .badge { display: inline-block; padding: 4px 10px; border-radius: 999px; font-size: 13px; font-weight: 800; }
+    .badge.clean { background: #dff3e5; color: #1f6b3a; }
+    .badge.preview { background: #fff3c4; color: #7a5c00; }
+    .badge.error { background: #f8dcdc; color: #8f2b2b; }
+    .actions { display: flex; gap: 8px; flex-wrap: wrap; margin: 8px 0; }
+    .actions button { flex: 1 1 120px; }
+    /* 装载图 */
+    .deck { border: 1px solid #d7e4e5; border-radius: 8px; padding: 10px; margin-bottom: 12px; background: #f4fafb; }
+    .slots { display: grid; gap: 8px; }
+    .slot { border: 1px solid #c9dadc; border-radius: 8px; background: #fff; min-height: 120px; display: flex; flex-direction: column; cursor: pointer; }
+    .slot.conflict { border-color: #c14545; box-shadow: 0 0 0 2px rgba(193,69,69,.25); }
+    .slot-head { font-size: 11px; color: #5c7378; padding: 4px 6px; border-bottom: 1px dashed #d7e4e5; display: flex; justify-content: space-between; gap: 4px; }
+    .stack { flex: 1; display: flex; flex-direction: column-reverse; justify-content: flex-start; gap: 4px; padding: 6px; }
+    .chip { border-radius: 6px; color: #fff; font-size: 12px; font-weight: 800; padding: 6px 4px; text-align: center; cursor: pointer; border: 2px solid transparent; line-height: 1.3; }
+    .chip small { display: block; font-weight: 400; font-size: 10px; opacity: .85; }
+    .chip.selected { border-color: #ffe97a; box-shadow: 0 0 0 2px #ffe97a; }
+    .chip.conflict { border-color: #c14545; }
+    .cat-陶瓷 { background: #b56c38; } .cat-金属 { background: #6e7880; }
+    .cat-有机质 { background: #6c4b2f; } .cat-其他 { background: #725ca6; }
+    /* 冲突与交接 */
+    .conflict-list { display: grid; gap: 6px; }
+    .conflict-item { border-left: 4px solid #c14545; background: #fdf1f1; border-radius: 6px; padding: 8px 10px; font-size: 13px; }
+    .conflict-item b { color: #8f2b2b; }
+    .ok-line { border-left: 4px solid #2e8b57; background: #eef9f1; border-radius: 6px; padding: 8px 10px; font-size: 13px; }
+    .handover-port { border: 1px solid #d7e4e5; border-radius: 8px; padding: 8px 10px; margin-bottom: 8px; }
+    .handover-port table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    .handover-port td, .handover-port th { padding: 3px 4px; text-align: left; border-bottom: 1px solid #eef4f5; }
+    /* 箱体登记 */
+    .box-list { display: grid; gap: 6px; max-height: 220px; overflow: auto; margin-bottom: 8px; }
+    .box-item { border: 1px solid #d7e4e5; border-radius: 8px; padding: 8px; cursor: pointer; font-size: 13px; }
+    .box-item.active { border-color: #1d6c78; background: #eef8f9; }
+    .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0 10px; }
+    .grid3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0 8px; }
+    .checks { display: flex; gap: 12px; align-items: center; margin: 6px 0; }
+    .checks label { margin: 0; display: flex; gap: 4px; align-items: center; }
+    .checks input { width: auto; }
+    details { border: 1px solid #d7e4e5; border-radius: 8px; padding: 8px 10px; margin-bottom: 10px; }
+    summary { cursor: pointer; font-weight: 800; font-size: 14px; }
+    @media (max-width: 980px) {
+      header { display: block; }
+      header .badge { margin-top: 6px; }
+      .layout { grid-template-columns: 1fr; }
+      .slots { grid-template-columns: repeat(2, 1fr) !important; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div>
+      <h1>出水文物转运装载规划台</h1>
+      <div class="muted">登记转运箱与货舱，自动生成并校验装载方案；冲突时拒绝保存。<a href="index.html">← 返回潜水记录</a></div>
+    </div>
+    <span id="statusBadge" class="badge clean">已提交</span>
+  </header>
+  <main class="layout">
+    <section>
+      <div class="panel">
+        <h2>装载图 <span class="muted" id="diagramMode"></span></h2>
+        <div id="diagram"></div>
+        <div class="muted">操作：点选箱 chip 后再点目标舱位可移动该箱（草稿），校验通过并「确认保存」后才生效。</div>
+      </div>
+      <div class="panel">
+        <h2>交接明细（已提交方案）</h2>
+        <div id="handoverList"></div>
+      </div>
+    </section>
+    <aside>
+      <div class="panel">
+        <h2>方案操作</h2>
+        <div class="actions">
+          <button id="btnGenerate">自动生成方案</button>
+          <button id="btnCommit" disabled>确认保存</button>
+          <button id="btnDiscard" class="secondary">放弃草稿</button>
+          <button id="btnReset" class="danger">恢复示例数据</button>
+        </div>
+        <div id="conflictPanel"></div>
+      </div>
+      <div class="panel">
+        <h2>箱体登记</h2>
+        <div id="boxList" class="box-list"></div>
+        <form id="boxForm">
+          <input name="originalCode" type="hidden">
+          <div class="grid2">
+            <div><label>箱号</label><input name="code" required placeholder="BX-107"></div>
+            <div><label>装卸港序（小=先卸）</label><input name="portOrder" type="number" min="1" step="1" required></div>
+          </div>
+          <label>外廓 长×宽×高 (cm)</label>
+          <div class="grid3">
+            <input name="l" type="number" min="1" step="0.1" required placeholder="长">
+            <input name="w" type="number" min="0.1" step="0.1" required placeholder="宽">
+            <input name="h" type="number" min="0.1" step="0.1" required placeholder="高">
+          </div>
+          <div class="grid3">
+            <div><label>重量 (kg)</label><input name="weight" type="number" min="0.1" step="0.1" required></div>
+            <div><label>可承重 (kg)</label><input name="maxLoad" type="number" min="0" step="0.1" required></div>
+            <div><label>重心高度 (cm)</label><input name="cogHeight" type="number" min="0" step="0.1" required></div>
+          </div>
+          <label>允许朝向</label>
+          <div class="checks">
+            <label><input type="checkbox" name="ori_upright" checked> 正放</label>
+            <label><input type="checkbox" name="ori_side"> 侧放</label>
+          </div>
+          <div class="grid2">
+            <div><label>脆弱等级 (1-5，≥4禁上堆)</label><input name="fragility" type="number" min="1" max="5" step="1" required></div>
+            <div><label>类别</label><input name="category" required placeholder="陶瓷 / 金属 / 有机质"></div>
+          </div>
+          <label>禁邻类别（逗号分隔）</label><input name="forbidNeighbors" placeholder="例如：金属,有机质">
+          <div class="actions">
+            <button type="submit">保存箱登记</button>
+            <button type="button" id="btnNewBox" class="secondary">新增箱</button>
+            <button type="button" id="btnDeleteBox" class="danger">删除该箱</button>
+          </div>
+          <div id="boxFormErrors" class="muted"></div>
+        </form>
+      </div>
+      <div class="panel">
+        <details>
+          <summary>舱位设置</summary>
+          <label>舱位</label><select id="slotSelect"></select>
+          <div class="grid2">
+            <div><label>堆叠上限（箱数）</label><input id="slotMaxStack" type="number" min="1" step="1"></div>
+            <div><label>舱位承重 (kg)</label><input id="slotMaxWeight" type="number" min="1" step="1"></div>
+          </div>
+          <label>重心偏移阈值（合成重心高 / 总高，0-1）</label>
+          <input id="cogLimit" type="number" min="0.1" max="1" step="0.01">
+          <div class="actions"><button id="btnApplySlot" type="button">应用舱位变更</button></div>
+        </details>
+      </div>
+    </aside>
+  </main>
+  <script src="src/planner-core.js"></script>
+  <script src="src/planner-store.js"></script>
+  <script src="src/planner-ui.js"></script>
+</body>
+</html>

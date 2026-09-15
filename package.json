@@ -1,0 +1,13 @@
+{
+  "name": "relic-transfer-planner",
+  "version": "1.0.0",
+  "private": true,
+  "description": "出水文物转运装载规划台（离线单页应用，零运行时依赖）",
+  "scripts": {
+    "test": "node --test tests/",
+    "verify:browser": "node scripts/browser-verify.mjs"
+  },
+  "devDependencies": {
+    "playwright": "^1.49.0"
+  }
+}

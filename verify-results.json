@@ -1,0 +1,143 @@
+{
+  "at": "2026-09-15T18:28:46.474Z",
+  "browser": "Chromium 153.0.8010.12 (playwright headless)",
+  "viewports": [
+    "desktop 1280x800",
+    "mobile 390x844 (iPhone UA, touch)"
+  ],
+  "total": 26,
+  "passed": 26,
+  "failed": 0,
+  "results": [
+    {
+      "name": "桌面：首次加载渲染已提交装载图",
+      "ok": true,
+      "detail": "chips=6"
+    },
+    {
+      "name": "桌面：状态徽标为已提交",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "桌面：交接明细按港序分组渲染",
+      "ok": true,
+      "detail": "ports=3"
+    },
+    {
+      "name": "桌面：自动生成后进入预览待确认",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "桌面：重复生成方案一致（确定性）",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "桌面：确认保存后回到已提交",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "桌面：刷新后方案持久化",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "桌面：手动移动箱后进入预览",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "桌面：移动已保存且交接明细更新",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "桌面：变更后重算失败，冲突面板指明箱号与约束",
+      "ok": true,
+      "detail": "冲突（已拒绝保存，原方案不变）BX-101 · 无法安置所有舱位均无法满足约束，箱无法安置"
+    },
+    {
+      "name": "桌面：冲突时状态为未保存且确认按钮禁用",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "桌面：失败时装载图不变",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "桌面：失败时交接明细不变",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "桌面：放弃草稿后恢复已提交状态",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "桌面：合法箱体变更自动重算为预览",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "桌面：合法变更保存并持久化",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "桌面：舱位变更后自动重算（预览或冲突）",
+      "ok": true,
+      "detail": "预览待确认"
+    },
+    {
+      "name": "桌面：index.html 入口可进入规划台",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "桌面：规划台可返回潜水记录",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "手机：布局为单列",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "手机：装载图与交接明细可见",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "手机：触屏可生成方案",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "手机：触屏可确认保存",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "手机：刷新后方案持久化",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "手机：触屏可调整装载",
+      "ok": true,
+      "detail": "预览待确认"
+    },
+    {
+      "name": "浏览器控制台无未捕获异常",
+      "ok": true,
+      "detail": ""
+    }
+  ]
+}
